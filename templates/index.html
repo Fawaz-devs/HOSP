@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Hospital Management System</h1>
+        
+        <div id="auth-forms">
+            <form id="login-form">
+                <h2>Login</h2>
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <select name="role" required>
+                    <option value="">Select Role</option>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
+                <button type="submit">Login</button>
+            </form>
+
+            <form id="register-form">
+                <h2>Register</h2>
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <select name="role" required>
+                    <option value="">Select Role</option>
+                    <option value="patient">Patient</option>
+                    <option value="doctor">Doctor</option>
+                </select>
+                <button type="submit">Register</button>
+            </form>
+        </div>
+
+        <div id="logged-in-content" style="display: none;">
+            <p>Welcome, <span id="user-role"></span>!</p>
+            <form id="upload-form">
+                <h2>Upload Data</h2>
+                <input type="text" name="description" placeholder="Description" required>
+                <textarea name="content" placeholder="Content" required></textarea>
+                <input type="file" name="image" accept="image/*">
+                <button type="submit">Upload</button>
+            </form>
+
+            <div id="private-key-display" style="display: none;">
+                <p>Your private key: <span id="private-key"></span></p>
+            </div>
+
+            <form id="retrieve-form">
+                <h2>Retrieve Data</h2>
+                <input type="text" name="private_key" placeholder="Private Key" required>
+                <button type="submit">Retrieve</button>
+            </form>
+
+            <div id="retrieved-data" style="display: none;">
+                <h3>Retrieved Data</h3>
+                <p>Description: <span id="retrieved-description"></span></p>
+                <p>Content: <span id="retrieved-content"></span></p>
+                <div id="retrieved-image-container" style="display: none;">
+                    <img id="retrieved-image" alt="Retrieved Image">
+                </div>
+            </div>
+
+            <button id="logout-button">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const authForms = document.getElementById('auth-forms');
+        const loggedInContent = document.getElementById('logged-in-content');
+        const userRoleSpan = document.getElementById('user-role');
+        const uploadForm = document.getElementById('upload-form');
+        const privateKeyDisplay = document.getElementById('private-key-display');
+        const privateKeySpan = document.getElementById('private-key');
+        const retrieveForm = document.getElementById('retrieve-form');
+        const retrievedData = document.getElementById('retrieved-data');
+        const retrievedDescription = document.getElementById('retrieved-description');
+        const retrievedContent = document.getElementById('retrieved-content');
+        const retrievedImageContainer = document.getElementById('retrieved-image-container');
+        const retrievedImage = document.getElementById('retrieved-image');
+        const logoutButton = document.getElementById('logout-button');
+
+        function showError(message) {
+            alert(message);
+        }
+
+        function showLoggedInContent(role) {
+            authForms.style.display = 'none';
+            loggedInContent.style.display = 'block';
+            userRoleSpan.textContent = role;
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showLoggedInContent(result.role);
+                } else {
+                    showError(result.error || 'Login failed');
+                }
+            } catch (error) {
+                showError('An error occurred during login. Please try again.');
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showLoggedInContent(result.role);
+                } else {
+                    showError(result.error || 'Registration failed');
+                }
+            } catch (error) {
+                showError('An error occurred during registration. Please try again.');
+            }
+        });
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    privateKeySpan.textContent = result.private_key;
+                    privateKeyDisplay.style.display = 'block';
+                    alert('Data uploaded successfully. Please save your private key.');
+                } else {
+                    showError(result.error || 'An error occurred during upload.');
+                }
+            } catch (error) {
+                showError('An error occurred during upload. Please try again.');
+            }
+        });
+
+        retrieveForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch('/retrieve', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    retrievedDescription.textContent = result.description;
+                    retrievedContent.textContent = result.content;
+                    retrievedData.style.display = 'block';
+                    
+                    if (result.image_filename) {
+                        retrievedImage.src = `/uploads/${result.image_filename}`;
+                        retrievedImageContainer.style.display = 'block';
+                    } else {
+                        retrievedImageContainer.style.display = 'none';
+                    }
+                } else {
+                    showError(result.error || 'An error occurred while retrieving data.');
+                }
+            } catch (error) {
+                showError('An error occurred while retrieving data. Please try again.');
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/logout', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    authForms.style.display = 'block';
+                    loggedInContent.style.display = 'none';
+                }
+            } catch (error) {
+                showError('An error occurred during logout. Please try again.');
+            }
+        });
+
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/health');
+                if (response.ok) {
+                    console.log('Server is running');
+                } else {
+                    console.error('Server is not responding correctly');
+                    showError('Server is not responding correctly. Please try again later.');
+                }
+            } catch (error) {
+                console.error('Error checking server status:', error);
+                showError('Unable to connect to the server. Please check your internet connection and try again.');
+            }
+        }
+
+        // Call this function when the page loads
+        window.addEventListener('load', checkServerStatus);
+    </script>
+</body>
+</html>
+
